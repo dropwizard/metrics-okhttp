@@ -10,7 +10,7 @@
 
   <groupId>io.dropwizard.metrics.okhttp</groupId>
   <artifactId>metrics-okhttp-parent</artifactId>
-  <version>0.5.0-SNAPSHOT</version>
+  <version>0.5.0-rc.1</version>
   <packaging>pom</packaging>
   <name>Metrics Integration for OkHttp (Parent)</name>
 
@@ -22,7 +22,7 @@
   <properties>
     <!-- use UTF-8 for everything -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.build.outputTimestamp>2023-12-09T12:28:05Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2023-12-30T01:22:47Z</project.build.outputTimestamp>
     <maven.compiler.showWarnings>true</maven.compiler.showWarnings>
     <maven.compiler.showDeprecation>true</maven.compiler.showDeprecation>
     <nexus.url>https://s01.oss.sonatype.org</nexus.url>
@@ -44,7 +44,7 @@
     <url>https://github.com/dropwizard/metrics-okhttp</url>
     <connection>scm:git:https://github.com/dropwizard/metrics-okhttp.git</connection>
     <developerConnection>scm:git:git@github.com:dropwizard/metrics-okhttp.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>v0.5.0-rc1</tag>
   </scm>
 
   <distributionManagement>
