@@ -14,10 +14,10 @@ public final class App {
     MetricRegistry metrics = new MetricRegistry();
 
     try (ConsoleReporter reporter =
-           ConsoleReporter.forRegistry(metrics)
-             .convertRatesTo(TimeUnit.SECONDS)
-             .convertDurationsTo(TimeUnit.MILLISECONDS)
-             .build()) {
+        ConsoleReporter.forRegistry(metrics)
+            .convertRatesTo(TimeUnit.SECONDS)
+            .convertDurationsTo(TimeUnit.MILLISECONDS)
+            .build()) {
       reporter.start(15, TimeUnit.SECONDS);
 
       OkHttpClient client = InstrumentedOkHttpClients.create(metrics);
@@ -26,7 +26,9 @@ public final class App {
       for (; ; ) {
 
         Request request =
-          new Request.Builder().url("https://api.github.com/repos/raskasa/metrics-okhttp").build();
+            new Request.Builder()
+                .url("https://api.github.com/repos/raskasa/metrics-okhttp")
+                .build();
 
         try (Response response = client.newCall(request).execute()) {
           System.out.println(response.body().string());
