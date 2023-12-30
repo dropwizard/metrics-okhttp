@@ -16,20 +16,14 @@
 package com.raskasa.metrics.okhttp;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.NoopMetricRegistry;
 import okhttp3.OkHttpClient;
-import org.junit.Before;
 import org.junit.Test;
 
 public final class InstrumentedOkHttpClientsTest {
-  private MetricRegistry registry;
-
-  @Before
-  public void setUp() {
-    registry = mock(MetricRegistry.class);
-  }
+  private final MetricRegistry registry = new NoopMetricRegistry();
 
   @Test
   public void instrumentDefaultClient() {
