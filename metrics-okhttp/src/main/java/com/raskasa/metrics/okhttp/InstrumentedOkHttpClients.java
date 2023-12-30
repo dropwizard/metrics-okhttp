@@ -23,12 +23,12 @@ public final class InstrumentedOkHttpClients {
 
   /** Create and instrument an {@link OkHttpClient}. */
   public static OkHttpClient create(MetricRegistry registry) {
-    return new InstrumentedOkHttpClient(registry, new OkHttpClient(), null);
+    return InstrumentedOkHttpClient.build(registry, new OkHttpClient(), null);
   }
 
   /** Instrument the given {@link OkHttpClient}. */
   public static OkHttpClient create(MetricRegistry registry, OkHttpClient client) {
-    return new InstrumentedOkHttpClient(registry, client, null);
+    return InstrumentedOkHttpClient.build(registry, client, null);
   }
 
   /**
@@ -38,7 +38,7 @@ public final class InstrumentedOkHttpClients {
    * situations where you have more than one instrumented client in your application.
    */
   public static OkHttpClient create(MetricRegistry registry, String name) {
-    return new InstrumentedOkHttpClient(registry, new OkHttpClient(), name);
+    return InstrumentedOkHttpClient.build(registry, new OkHttpClient(), name);
   }
 
   /**
@@ -48,7 +48,7 @@ public final class InstrumentedOkHttpClients {
    * situations where you have more than one instrumented client in your application.
    */
   public static OkHttpClient create(MetricRegistry registry, OkHttpClient client, String name) {
-    return new InstrumentedOkHttpClient(registry, client, name);
+    return InstrumentedOkHttpClient.build(registry, client, name);
   }
 
   private InstrumentedOkHttpClients() {

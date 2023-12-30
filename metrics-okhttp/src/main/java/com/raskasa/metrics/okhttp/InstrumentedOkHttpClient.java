@@ -21,46 +21,28 @@ import com.codahale.metrics.Gauge;
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.RatioGauge;
 import java.io.IOException;
-import java.net.Proxy;
-import java.net.ProxySelector;
-import java.util.List;
-import javax.net.SocketFactory;
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.SSLSocketFactory;
-import okhttp3.Authenticator;
-import okhttp3.Cache;
-import okhttp3.Call;
-import okhttp3.CertificatePinner;
-import okhttp3.ConnectionPool;
-import okhttp3.ConnectionSpec;
-import okhttp3.CookieJar;
-import okhttp3.Dispatcher;
-import okhttp3.Dns;
 import okhttp3.EventListener;
-import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
-import okhttp3.Protocol;
-import okhttp3.Request;
-import okhttp3.WebSocket;
-import okhttp3.WebSocketListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Wraps an {@link OkHttpClient} in order to provide data about its internals. */
 final class InstrumentedOkHttpClient extends OkHttpClient {
   private static final Logger LOG = LoggerFactory.getLogger(InstrumentedOkHttpClient.class);
-  private final MetricRegistry registry;
-  private OkHttpClient rawClient;
-  private final String name;
 
-  InstrumentedOkHttpClient(MetricRegistry registry, OkHttpClient rawClient, String name) {
-    this.rawClient = rawClient;
-    this.registry = registry;
-    this.name = name;
-    instrumentHttpCache();
-    instrumentConnectionPool();
-    instrumentNetworkRequests();
-    instrumentEventListener();
+  public static OkHttpClient build(MetricRegistry registry, OkHttpClient rawClient, String name) {
+    Builder builder = rawClient.newBuilder();
+    EventListener.Factory eventListenerFactory = rawClient.eventListenerFactory();
+    instrumentNetworkRequests(builder, registry, name);
+    instrumentEventListener(builder, eventListenerFactory, registry, name);
+
+    OkHttpClient client = builder.build();
+    if (rawClient.cache() != null) {
+      instrumentHttpCache(client, registry, name);
+    }
+    instrumentConnectionPool(client, registry, name);
+
+    return client;
   }
 
   /**
@@ -75,54 +57,53 @@ final class InstrumentedOkHttpClient extends OkHttpClient {
    *   <li>the given {@code metric}
    * </ul>
    */
-  String metricId(String metric) {
+  static String metricId(String name, String metric) {
     return name(OkHttpClient.class, name, metric);
   }
 
-  private void instrumentHttpCache() {
-    if (cache() == null) return;
-
+  private static void instrumentHttpCache(
+      OkHttpClient client, MetricRegistry registry, String name) {
     registry.register(
-        metricId("cache-request-count"),
+        metricId(name, "cache-request-count"),
         new Gauge<Integer>() {
           @Override
           public Integer getValue() {
             // The number of HTTP requests issued since this cache was created.
-            return rawClient.cache().requestCount();
+            return client.cache().requestCount();
           }
         });
     registry.register(
-        metricId("cache-hit-count"),
+        metricId(name, "cache-hit-count"),
         new Gauge<Integer>() {
           @Override
           public Integer getValue() {
             // ... the number of those requests that required network use.
-            return rawClient.cache().hitCount();
+            return client.cache().hitCount();
           }
         });
     registry.register(
-        metricId("cache-network-count"),
+        metricId(name, "cache-network-count"),
         new Gauge<Integer>() {
           @Override
           public Integer getValue() {
             // ... the number of those requests whose responses were served by the cache.
-            return rawClient.cache().networkCount();
+            return client.cache().networkCount();
           }
         });
     registry.register(
-        metricId("cache-write-success-count"),
+        metricId(name, "cache-write-success-count"),
         new Gauge<Integer>() {
           @Override
           public Integer getValue() {
-            return rawClient.cache().writeSuccessCount();
+            return client.cache().writeSuccessCount();
           }
         });
     registry.register(
-        metricId("cache-write-abort-count"),
+        metricId(name, "cache-write-abort-count"),
         new Gauge<Integer>() {
           @Override
           public Integer getValue() {
-            return rawClient.cache().writeAbortCount();
+            return client.cache().writeAbortCount();
           }
         });
     final Gauge<Long> currentCacheSize =
@@ -130,7 +111,7 @@ final class InstrumentedOkHttpClient extends OkHttpClient {
           @Override
           public Long getValue() {
             try {
-              return rawClient.cache().size();
+              return client.cache().size();
             } catch (IOException ex) {
               LOG.error(ex.getMessage(), ex);
               return -1L;
@@ -141,13 +122,13 @@ final class InstrumentedOkHttpClient extends OkHttpClient {
         new Gauge<Long>() {
           @Override
           public Long getValue() {
-            return rawClient.cache().maxSize();
+            return client.cache().maxSize();
           }
         };
-    registry.register(metricId("cache-current-size"), currentCacheSize);
-    registry.register(metricId("cache-max-size"), maxCacheSize);
+    registry.register(metricId(name, "cache-current-size"), currentCacheSize);
+    registry.register(metricId(name, "cache-max-size"), maxCacheSize);
     registry.register(
-        metricId("cache-size"),
+        metricId(name, "cache-size"),
         new RatioGauge() {
           @Override
           protected Ratio getRatio() {
@@ -156,193 +137,39 @@ final class InstrumentedOkHttpClient extends OkHttpClient {
         });
   }
 
-  private void instrumentConnectionPool() {
-    if (connectionPool() == null) {
-      rawClient = rawClient.newBuilder().connectionPool(new ConnectionPool()).build();
-    }
-
+  private static void instrumentConnectionPool(
+      OkHttpClient client, MetricRegistry registry, String name) {
     registry.register(
-        metricId("connection-pool-total-count"),
+        metricId(name, "connection-pool-total-count"),
         new Gauge<Integer>() {
           @Override
           public Integer getValue() {
-            return rawClient.connectionPool().connectionCount();
+            return client.connectionPool().connectionCount();
           }
         });
     registry.register(
-        metricId("connection-pool-idle-count"),
+        metricId(name, "connection-pool-idle-count"),
         new Gauge<Integer>() {
           @Override
           public Integer getValue() {
-            return rawClient.connectionPool().idleConnectionCount();
+            return client.connectionPool().idleConnectionCount();
           }
         });
   }
 
-  private void instrumentNetworkRequests() {
-    rawClient =
-        rawClient
-            .newBuilder()
-            .addNetworkInterceptor(
-                new InstrumentedInterceptor(registry, name(OkHttpClient.class, this.name)))
-            .build();
+  private static void instrumentNetworkRequests(
+      Builder builder, MetricRegistry registry, String name) {
+    builder.addNetworkInterceptor(
+        new InstrumentedInterceptor(registry, name(OkHttpClient.class, name)));
   }
 
-  private void instrumentEventListener() {
-    final EventListener.Factory delegate = this.rawClient.eventListenerFactory();
-    this.rawClient =
-        this.rawClient
-            .newBuilder()
-            .eventListenerFactory(
-                new InstrumentedEventListener.Factory(
-                    this.registry, delegate, name(EventListener.class, this.name)))
-            .build();
-  }
-
-  @Override
-  public Authenticator authenticator() {
-    return rawClient.authenticator();
-  }
-
-  @Override
-  public Cache cache() {
-    return rawClient.cache();
-  }
-
-  @Override
-  public CertificatePinner certificatePinner() {
-    return rawClient.certificatePinner();
-  }
-
-  @Override
-  public ConnectionPool connectionPool() {
-    return rawClient.connectionPool();
-  }
-
-  @Override
-  public List<ConnectionSpec> connectionSpecs() {
-    return rawClient.connectionSpecs();
-  }
-
-  @Override
-  public int connectTimeoutMillis() {
-    return rawClient.connectTimeoutMillis();
-  }
-
-  @Override
-  public CookieJar cookieJar() {
-    return rawClient.cookieJar();
-  }
-
-  @Override
-  public Dispatcher dispatcher() {
-    return rawClient.dispatcher();
-  }
-
-  @Override
-  public Dns dns() {
-    return rawClient.dns();
-  }
-
-  @Override
-  public boolean followRedirects() {
-    return rawClient.followRedirects();
-  }
-
-  @Override
-  public boolean followSslRedirects() {
-    return rawClient.followSslRedirects();
-  }
-
-  @Override
-  public HostnameVerifier hostnameVerifier() {
-    return rawClient.hostnameVerifier();
-  }
-
-  @Override
-  public List<Interceptor> interceptors() {
-    return rawClient.interceptors();
-  }
-
-  @Override
-  public List<Interceptor> networkInterceptors() {
-    return rawClient.networkInterceptors();
-  }
-
-  @Override
-  public OkHttpClient.Builder newBuilder() {
-    return rawClient.newBuilder();
-  }
-
-  @Override
-  public Call newCall(Request request) {
-    return rawClient.newCall(request);
-  }
-
-  @Override
-  public WebSocket newWebSocket(Request request, WebSocketListener listener) {
-    return rawClient.newWebSocket(request, listener);
-  }
-
-  @Override
-  public int pingIntervalMillis() {
-    return rawClient.pingIntervalMillis();
-  }
-
-  @Override
-  public List<Protocol> protocols() {
-    return rawClient.protocols();
-  }
-
-  @Override
-  public Proxy proxy() {
-    return rawClient.proxy();
-  }
-
-  @Override
-  public Authenticator proxyAuthenticator() {
-    return rawClient.proxyAuthenticator();
-  }
-
-  @Override
-  public ProxySelector proxySelector() {
-    return rawClient.proxySelector();
-  }
-
-  @Override
-  public int readTimeoutMillis() {
-    return rawClient.readTimeoutMillis();
-  }
-
-  @Override
-  public boolean retryOnConnectionFailure() {
-    return rawClient.retryOnConnectionFailure();
-  }
-
-  @Override
-  public SocketFactory socketFactory() {
-    return rawClient.socketFactory();
-  }
-
-  @Override
-  public SSLSocketFactory sslSocketFactory() {
-    return rawClient.sslSocketFactory();
-  }
-
-  @Override
-  public int writeTimeoutMillis() {
-    return rawClient.writeTimeoutMillis();
-  }
-
-  @Override
-  public boolean equals(Object obj) {
-    return (obj instanceof InstrumentedOkHttpClient
-            && rawClient.equals(((InstrumentedOkHttpClient) obj).rawClient))
-        || rawClient.equals(obj);
-  }
-
-  @Override
-  public String toString() {
-    return rawClient.toString();
+  private static void instrumentEventListener(
+      Builder builder,
+      EventListener.Factory eventListenerFactory,
+      MetricRegistry registry,
+      String name) {
+    builder.eventListenerFactory(
+        new InstrumentedEventListener.Factory(
+            registry, eventListenerFactory, name(EventListener.class, name)));
   }
 }

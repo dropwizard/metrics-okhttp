@@ -142,7 +142,7 @@ public final class RecordingEventListener extends EventListener {
 
   @Override
   public void requestHeadersEnd(Call call, Request request) {
-    logEvent(new RequestHeadersEnd(call, request.headers.byteCount()));
+    logEvent(new RequestHeadersEnd(call, request.headers().byteCount()));
   }
 
   @Override
@@ -167,7 +167,7 @@ public final class RecordingEventListener extends EventListener {
 
   @Override
   public void responseHeadersEnd(Call call, Response response) {
-    logEvent(new ResponseHeadersEnd(call, response.headers.byteCount()));
+    logEvent(new ResponseHeadersEnd(call, response.headers().byteCount()));
   }
 
   @Override
