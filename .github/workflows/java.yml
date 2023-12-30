@@ -16,12 +16,13 @@ jobs:
         uses: actions/setup-java@387ac29b308b003ca37ba93a6cab5eb57c8f5f93 # v4
         with:
           distribution: 'zulu'
-          java-version: 11
+          java-version: '21'
+          cache: 'maven'
       - name: Run Maven Build
-        run: mvn package
+        run: ./mvnw -B -V -ntp package
       - name: Publish Snapshots and JavaDocs
         if: github.event_name != 'pull_request'
         env:
           CI_DEPLOY_USERNAME: ${{ secrets.CI_DEPLOY_USERNAME }}
           CI_DEPLOY_PASSWORD: ${{ secrets.CI_DEPLOY_PASSWORD }}
-        run: mvn clean source:jar javadoc:jar deploy --settings=".buildscript/settings.xml" -Dmaven.test.skip=true
+        run: ./mvnw -B -V -ntp clean source:jar javadoc:jar deploy --settings=".buildscript/settings.xml" -Dmaven.test.skip=true
