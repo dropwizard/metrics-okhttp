@@ -22,6 +22,11 @@
   <properties>
     <!-- use UTF-8 for everything -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.build.outputTimestamp>2023-12-09T12:28:05Z</project.build.outputTimestamp>
+    <maven.compiler.showWarnings>true</maven.compiler.showWarnings>
+    <maven.compiler.showDeprecation>true</maven.compiler.showDeprecation>
+    <nexus.url>https://s01.oss.sonatype.org</nexus.url>
+    <gpg.keyname>EDA86E9FB607B5FC9223FB767D4868B53E31E7AD</gpg.keyname>
 
     <!-- Compilation dependencies -->
     <java.version>1.8</java.version>
@@ -41,6 +46,17 @@
     <developerConnection>scm:git:git@github.com:dropwizard/metrics-okhttp.git</developerConnection>
     <tag>HEAD</tag>
   </scm>
+
+  <distributionManagement>
+    <snapshotRepository>
+      <id>sonatype-nexus-snapshots</id>
+      <url>${nexus.url}/content/repositories/snapshots</url>
+    </snapshotRepository>
+    <repository>
+      <id>sonatype-nexus-staging</id>
+      <url>${nexus.url}/service/local/staging/deploy/maven2/</url>
+    </repository>
+  </distributionManagement>
 
   <issueManagement>
     <system>GitHub Issues</system>
