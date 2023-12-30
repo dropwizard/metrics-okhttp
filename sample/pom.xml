@@ -22,7 +22,7 @@
       <artifactId>metrics-core</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.raskasa.metrics</groupId>
+      <groupId>io.dropwizard.metrics.okhttp</groupId>
       <artifactId>metrics-okhttp</artifactId>
       <version>${project.version}</version>
     </dependency>
