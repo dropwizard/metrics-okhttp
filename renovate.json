@@ -4,7 +4,7 @@
     "local>dropwizard/renovate-config"
   ],
   "baseBranches": [
-    "master"
+    "main"
   ],
   "forkProcessing": "enabled"
 }
