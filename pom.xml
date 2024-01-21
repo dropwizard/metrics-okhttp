@@ -30,7 +30,7 @@
 
     <!-- Compilation dependencies -->
     <java.version>1.8</java.version>
-    <metrics.version>4.2.23</metrics.version>
+    <metrics.version>4.2.24</metrics.version>
     <mockito.version>5.8.0</mockito.version>
     <okhttp.version>4.12.0</okhttp.version>
 
